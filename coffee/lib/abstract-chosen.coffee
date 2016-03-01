@@ -32,6 +32,7 @@ class AbstractChosen
     @display_selected_options = if @options.display_selected_options? then @options.display_selected_options else true
     @display_disabled_options = if @options.display_disabled_options? then @options.display_disabled_options else true
     @include_group_label_in_selected = @options.include_group_label_in_selected || false
+    @max_shown_results = @options.max_shown_results || Number.POSITIVE_INFINITY
 
   set_default_text: ->
     if @form_field.getAttribute("data-placeholder")
@@ -65,11 +66,16 @@ class AbstractChosen
 
   results_option_build: (options) ->
     content = ''
+    shown_results = 0
     for data in @results_data
+      data_content = ''
       if data.group
-        content += this.result_add_group data
+        data_content = this.result_add_group data
       else
-        content += this.result_add_option data
+        data_content = this.result_add_option data
+      if data_content != ''
+        shown_results++
+        content += data_content
 
       # this select logic pins on an awkward flag
       # we can make it better
@@ -78,6 +84,9 @@ class AbstractChosen
           this.choice_build data
         else if data.selected and not @is_multiple
           this.single_set_selected_text(this.choice_label(data))
+
+      if shown_results >= @max_shown_results
+        break
 
     content
 
@@ -236,7 +245,7 @@ class AbstractChosen
       when 27
         this.results_hide() if @results_showing
         return true
-      when 9, 38, 40, 16, 91, 17
+      when 9, 38, 40, 16, 91, 17, 18
         # don't do anything on these keys
       else this.results_search()
 
@@ -273,12 +282,20 @@ class AbstractChosen
   # class methods and variables ============================================================
 
   @browser_is_supported: ->
-    if window.navigator.appName == "Microsoft Internet Explorer"
-      return document.documentMode >= 8
     if /iP(od|hone)/i.test(window.navigator.userAgent)
       return false
     if /Android/i.test(window.navigator.userAgent)
       return false if /Mobile/i.test(window.navigator.userAgent)
+    if /IEMobile/i.test(window.navigator.userAgent)
+      return false
+    if /Windows Phone/i.test(window.navigator.userAgent)
+      return false
+    if /BlackBerry/i.test(window.navigator.userAgent)
+      return false
+    if /BB10/i.test(window.navigator.userAgent)
+      return false
+    if window.navigator.appName is "Microsoft Internet Explorer"
+      return document.documentMode >= 8
     return true
 
   @default_multiple_text: "Select Some Options"
